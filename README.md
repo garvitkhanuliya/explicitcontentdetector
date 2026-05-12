@@ -15,9 +15,3 @@ First, install the required Python libraries:
 ```bash
 pip install flask flask-cors nudenet opencv-python pillow
 
-###  How to Run
-
-#### 1. Start the Backend
-Open your terminal in the project folder and run the server:
-```bash
-python app.py
