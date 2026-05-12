@@ -14,9 +14,10 @@ In the contemporary digital era, the risk of "cyberflashing" on platforms like W
 First, install the required Python libraries:
 ```bash
 pip install flask flask-cors nudenet opencv-python pillow
-Start the Backend
+
+###  How to Run
+
+#### 1. Start the Backend
 Open your terminal in the project folder and run the server:
 ```bash
 python app.py
-
-then run the html file
