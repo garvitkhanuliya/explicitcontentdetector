@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Explicit Content Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0c10; --card: #13151c; --accent: #00d4aa; --border: rgba(255, 255, 255, 0.1);
+    --text: #e8eaf0; --muted: #6b7280; --danger: #ff4757;
+  }
+  body { background-color: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 40px 20px; }
+  .container { width: 100%; max-width: 860px; text-align: center; }
+  .logo { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .logo-text { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; color: #fff; }
+  .logo-text span { color: var(--accent); }
+  header p { color: var(--muted); font-size: 14px; margin-bottom: 40px; }
+
+  
+  .upload-card { background: var(--card); border: 1.5px dashed var(--border); border-radius: 16px; padding: 60px 40px; position: relative; cursor: pointer; transition: 0.2s; }
+  .upload-card:hover { border-color: var(--accent); }
+  .upload-icon-circle { width: 56px; height: 56px; background: rgba(0, 212, 170, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  .upload-icon-circle svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 2; }
+  .browse-btn { display: inline-block; padding: 10px 24px; border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-family: 'Space Mono', monospace; font-size: 13px; margin-top: 20px; }
+  #file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  /* Technical Result Area */
+  #result-area { display: none; margin-top: 30px; background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+  .result-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .verdict-text { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 14px; }
+  
+  canvas { display: block; max-width: 100%; margin: 20px auto; border-radius: 4px; }
+
+  /* Stats Grid from earlier versions */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .stat-item { padding: 20px; border-right: 1px solid var(--border); text-align: center; }
+  .stat-item:last-child { border-right: none; }
+  .stat-val { display: block; font-size: 20px; font-weight: 700; font-family: 'Space Mono'; margin-bottom: 4px; }
+  .stat-lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  #alert-list { padding: 20px; text-align: left; font-family: 'Space Mono'; font-size: 12px; }
+  .alert-tag { color: var(--danger); display: inline-block; margin-right: 15px; }
+
+  footer { margin-top: 40px; color: var(--muted); font-size: 12px; font-family: 'Space Mono'; }
+  footer span { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" stroke="#000" stroke-width="2.5" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="logo-text">Explicit<span>Content Detector</span></div>
+    </div>
+    <p> Explicit content detection & automatic blur using ML based libraries</p>
+  </header>
+
+  <div class="upload-card" id="drop-zone">
+    <input type="file" id="file-input" accept="image/*"/>
+    <div class="upload-icon-circle">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <h2>Drop images for testing</h2>
+    <p>Supports JPG, PNG, WEBP </p>
+    <div class="browse-btn">Browse files</div>
+  </div>
+
+  <div id="result-area">
+    <div class="result-header">
+      <span class="verdict-text" id="v-text">SAFE</span>
+      <button onclick="location.reload()" style="background:none; border:none; color:var(--muted); cursor:pointer; font-family:'Space Mono'; font-size:11px">NEW ANALYSIS</button>
+    </div>
+    
+    <div style="padding:20px; position:relative">
+      <canvas id="output-canvas"></canvas>
+      <button id="toggle-blur" style="position:absolute; top:30px; right:30px; background:rgba(0,0,0,0.6); border:1px solid var(--border); color:#fff; padding:6px 12px; border-radius:6px; cursor:pointer; font-family:'Space Mono'; font-size:10px">SHOW ORIGINAL</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-item"><span class="stat-val" id="s-label">—</span><span class="stat-lab">Verdict</span></div>
+      <div class="stat-item"><span class="stat-val" id="s-conf">—</span><span class="stat-lab">Confidence</span></div>
+      <div class="stat-item"><span class="stat-val" id="s-count">—</span><span class="stat-lab">Alerts</span></div>
+    </div>
+
+    <div id="alert-list"></div>
+  </div>
+
+  <footer> Mini project <p><span>Explicit Content Detector</span>  </p></footer>
+</div>
+
+<script>
+const BACKEND = 'http://localhost:5000/analyze';
+const fileInput = document.getElementById('file-input');
+const canvas = document.getElementById('output-canvas');
+const ctx = canvas.getContext('2d');
+const toggleBtn = document.getElementById('toggle-blur');
+
+let currentImg = null, regions = [], isBlurred = true;
+
+fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if(!file) return;
+    currentImg = new Image();
+    currentImg.src = URL.createObjectURL(file);
+    await currentImg.decode();
+
+    const fd = new FormData(); fd.append('image', file);
+    try {
+        const res = await fetch(BACKEND, { method: 'POST', body: fd });
+        const data = await res.json();
+        regions = data.blur_regions || [];
+        
+        setupCanvas();
+        draw(true);
+        updateUI(data);
+        
+        document.getElementById('result-area').style.display = 'block';
+        document.getElementById('drop-zone').style.display = 'none';
+    } catch(e) { alert("Backend offline"); }
+};
+
+function setupCanvas() {
+    const scale = Math.min(1, 800 / currentImg.naturalWidth);
+    canvas.width = currentImg.naturalWidth * scale;
+    canvas.height = currentImg.naturalHeight * scale;
+}
+
+function draw(blur) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(currentImg, 0, 0, canvas.width, canvas.height);
+    if(blur && regions.length > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.85; 
+        for(let i=0; i<8; i++) {
+            ctx.filter = `blur(${canvas.width / 20}px) brightness(0.9)`;
+            ctx.drawImage(canvas, 0, 0);
+        }
+        ctx.restore();
+    }
+}
+
+function updateUI(d) {
+    const v = document.getElementById('v-text');
+    v.textContent = d.label;
+    v.style.color = d.label === 'SAFE' ? 'var(--accent)' : 'var(--danger)';
+    
+    document.getElementById('s-label').textContent = d.label;
+    document.getElementById('s-label').style.color = d.label === 'SAFE' ? 'var(--accent)' : 'var(--danger)';
+    document.getElementById('s-conf').textContent = (d.confidence * 100).toFixed(1) + '%';
+    document.getElementById('s-count').textContent = d.detections.length;
+
+    const list = document.getElementById('alert-list');
+    list.innerHTML = d.detections.length > 0 ? '<strong>DETECTIONS:</strong><br>' : 'SAFE: NO EXPLICIT CONTENT FOUND';
+    d.detections.forEach(det => {
+        list.innerHTML += `<span class="alert-tag">• ${det.label.replace(/_/g, ' ')}</span> `;
+    });
+}
+
+toggleBtn.onclick = () => {
+    isBlurred = !isBlurred;
+    toggleBtn.textContent = isBlurred ? 'SHOW ORIGINAL IMAGE' : 'APPLY SHIELD';
+    draw(isBlurred);
+};
+</script>
+</body>
+</html>
