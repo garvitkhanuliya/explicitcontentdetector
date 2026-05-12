@@ -9,6 +9,8 @@ In the contemporary digital era, the risk of "cyberflashing" on platforms like W
 *   **Global Shielding:** Automatically applies a Gaussian blur to detected explicit content.
 
 ## How to Run
+Run the python app.py first.
+After that run the index.html file.
 
 ###  Prerequisites
 First, install the required Python libraries:
